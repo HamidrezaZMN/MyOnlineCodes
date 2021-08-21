@@ -90,7 +90,7 @@ try:
         
         else:
             print(Fore.LIGHTYELLOW_EX + f'downloading {len(images)} started... (check `output` folder)' + Style.RESET_ALL)
-            for image_idx, url in enumerate(images[1:]):
+            for image_idx, url in enumerate(images):
                 name = escape_folder(url.rsplit('/', 1)[-1])
                 path = f'output/{name}'
                 
