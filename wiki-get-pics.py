@@ -2,6 +2,7 @@ try:
     import wikipedia
     import os, sys, time, requests, urllib.parse, tkinter, colorama
     from colorama import Fore, Style
+    from tqdm import tqdm
     from urllib.parse import parse_qs
     from pathlib import Path
     from typing import Dict, Tuple, Any
@@ -89,27 +90,16 @@ try:
         
         else:
             print(Fore.LIGHTYELLOW_EX + f'downloading {len(images)} started... (check `output` folder)' + Style.RESET_ALL)
-            for url in images:
+            for image_idx, url in enumerate(images[1:]):
                 name = escape_folder(url.rsplit('/', 1)[-1])
                 path = f'output/{name}'
                 
                 seconds = 1
                 try:
                     
-                    size = requests.head(
-                        url,
-                        allow_redirects=True,
-                        headers={'User-Agent': 'CoolTool/0.0 (hamid80zamanian@gmail.com) generic-library/0.0'},
-                    ).headers.get('Content-Length')
-                    if size:
-                        size = f'{Fore.LIGHTCYAN_EX}{int(size) / 1024 / 1024:.2f}{Style.RESET_ALL}M'
-                    else:
-                        size = 'SIZE_NOT_FOUND'
-                    print(f'downloading {name} ({size})... ', end='', flush=True)
-                    
                     r = requests.get(
                         url,
-                        allow_redirects=True,
+                        allow_redirects=True, stream=True,
                         headers={'User-Agent': 'CoolTool/0.0 (hamid80zamanian@gmail.com) generic-library/0.0'},
                     )
                     if not 200 <= r.status_code < 300:
@@ -121,8 +111,27 @@ try:
                             pass
                         continue
                     seconds += 2
+                    total_size_in_bytes= int(r.headers.get('content-length', 0))
+                    print(f'downloading {image_idx+1}- {name} ({total_size_in_bytes/1024/1024:.2f}M)... ')
+                    block_size = 1024 #1 Kibibyte
+                    progress_bar = tqdm(
+                        total=total_size_in_bytes,
+                        unit='iB',
+                        unit_scale=True,
+                        ncols=80,
+                        bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{remaining}]')
                     with open(path, 'wb') as f:
-                        f.write(r.content)
+                        for data in r.iter_content(block_size):
+                            progress_bar.update(len(data))
+                            f.write(data)
+                    progress_bar.close()
+                    if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+                        try:
+                            print(f'{Fore.LIGHTMAGENTA_EX}couldnt download{Style.RESET_ALL} {url} | reason: {e}')
+                            with open(log_file, 'a', encoding='utf-8') as f:
+                                f.write(f'couldnt process {url} | reason: {e}')
+                        except:
+                            pass
                     print(Fore.LIGHTGREEN_EX + 'done' + Style.RESET_ALL)
                 
                 except Exception as e:
