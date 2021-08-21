@@ -1,6 +1,7 @@
 try:
     import wikipedia
-    import os, sys, time, requests, urllib.parse, tkinter
+    import os, sys, time, requests, urllib.parse, tkinter, colorama
+    from colorama import Fore, Style
     from urllib.parse import parse_qs
     from pathlib import Path
     from typing import Dict, Tuple, Any
@@ -48,6 +49,8 @@ try:
 
     #-------------------------------- init vars
 
+    colorama.init()
+    
     log_file = str(Path(os.getcwd()) / f'log-{time.time()}.txt')
     open(log_file, 'w', encoding='utf-8').close()
     
@@ -61,12 +64,12 @@ try:
     #-------------------------------- main part
 
     def main(page_url):
-        print('checking url...')
+        print('checking url... ', end='', flush=True)
         if 'wikipedia.org' not in page_url or ('https://' not in page_url and 'http://' not in page_url):
             raise WrongWikiURl
         if not 200 <= requests.head(page_url).status_code < 300:
             raise URLDoesntExist
-        print('url is valid!')
+        print(Fore.LIGHTGREEN_EX + 'valid!' + Style.RESET_ALL)
         
         page_title = urllib.parse.urlparse(page_url).path.rsplit('/', 1)[-1].strip()
         if page_title == '':
@@ -79,55 +82,57 @@ try:
         except wikipedia.PageError:
             print()
             raise PageNotFound(f'https://en.wikipedia.org/wiki/{page_title}')
-        print('found! download started... (check `output` folder)')
+        print(Fore.LIGHTGREEN_EX + 'found!' + Style.RESET_ALL)
         
+        if len(images) == 0:
+            print(Fore.LIGHTYELLOW_EX + 'no images found on this page' + Style.RESET_ALL)
         
-        for url in images:
-            name = escape_folder(url.rsplit('/', 1)[-1])
-            path = f'output/{name}'
-            
-            seconds = 1
-            try:
+        else:
+            print(Fore.LIGHTYELLOW_EX + f'downloading {len(images)} started... (check `output` folder)' + Style.RESET_ALL)
+            for url in images:
+                name = escape_folder(url.rsplit('/', 1)[-1])
+                path = f'output/{name}'
                 
-                size = requests.head(
-                    url,
-                    allow_redirects=True,
-                    headers={'User-Agent': 'CoolTool/0.0 (hamid80zamanian@gmail.com) generic-library/0.0'},
-                ).headers.get('Content-Length')
-                if size:
-                    size = f'{int(size) / 1024 / 1024:.2f}M'
-                else:
-                    size = 'SIZE_NOT_FOUND'
-                print(f'downloading {name} ({size})... ', end='', flush=True)
+                seconds = 1
+                try:
+                    
+                    size = requests.head(
+                        url,
+                        allow_redirects=True,
+                        headers={'User-Agent': 'CoolTool/0.0 (hamid80zamanian@gmail.com) generic-library/0.0'},
+                    ).headers.get('Content-Length')
+                    if size:
+                        size = f'{Fore.LIGHTCYAN_EX}{int(size) / 1024 / 1024:.2f}{Style.RESET_ALL}M'
+                    else:
+                        size = 'SIZE_NOT_FOUND'
+                    print(f'downloading {name} ({size})... ', end='', flush=True)
+                    
+                    r = requests.get(
+                        url,
+                        allow_redirects=True,
+                        headers={'User-Agent': 'CoolTool/0.0 (hamid80zamanian@gmail.com) generic-library/0.0'},
+                    )
+                    if not 200 <= r.status_code < 300:
+                        try:
+                            print(f'{Fore.LIGHTMAGENTA_EX}couldnt download{Style.RESET_ALL} {url} | reason: {r.reason}')
+                            with open(log_file, 'a', encoding='utf-8') as f:
+                                f.write(f'couldnt download {url} | reason: {r.reason}')
+                        except:
+                            pass
+                        continue
+                    seconds += 2
+                    with open(path, 'wb') as f:
+                        f.write(r.content)
+                    print(Fore.LIGHTGREEN_EX + 'done' + Style.RESET_ALL)
                 
-                r = requests.get(
-                    url,
-                    allow_redirects=True,
-                    headers={'User-Agent': 'CoolTool/0.0 (hamid80zamanian@gmail.com) generic-library/0.0'},
-                )
-                if not 200 <= r.status_code < 300:
+                except Exception as e:
                     try:
-                        error_text = f'couldnt download {url} | reason: {r.reason}'
-                        print(error_text)
+                        print(f'{Fore.LIGHTMAGENTA_EX}couldnt download{Style.RESET_ALL} {url} | reason: {e}')
                         with open(log_file, 'a', encoding='utf-8') as f:
-                            f.write(error_text)
+                            f.write(f'couldnt process {url} | reason: {e}')
                     except:
                         pass
-                    continue
-                seconds += 2
-                with open(path, 'wb') as f:
-                    f.write(r.content)
-                print(f'done')
-            
-            except Exception as e:
-                try:
-                    error_text = f'couldnt process {url} | reason: {e}'
-                    print(error_text)
-                    with open(log_file, 'a', encoding='utf-8') as f:
-                        f.write(error_text)
-                except:
-                    pass
-            time.sleep(seconds)
+                time.sleep(seconds)
 
     #-------------------------------- final part
 
@@ -135,21 +140,22 @@ try:
     url = input('enter url: ')
     try:
         main(url)
-    except OutputFolderExists:
-        print(f'folder {output_folder} exists. delete it before using the bot')
     except WrongWikiURl:
-        print(f'Wrong url. Your url must have `wikipedia.org` in it and start with `http://` or `https://`')
+        print(f'{Fore.LIGHTMAGENTA_EX}Wrong url{Style.RESET_ALL}. Your url must have `wikipedia.org` in it and start with `http://` or `https://`')
     except URLDoesntExist:
-        print(f'your url doesnt exist: {url}')
+        print(f'{Fore.LIGHTMAGENTA_EX}your url doesnt exist{Style.RESET_ALL}: {url}')
     except CouldntGetPageTitle:
-        print(f'The url you entered is not valid. couldnt find the page title')
+        print(f'{Fore.LIGHTMAGENTA_EX}The url you entered is not valid{Style.RESET_ALL}. couldnt find the page title')
     except PageNotFound as e:
-        print(f'Coulnt find your page: {e}')
+        print(f'{Fore.LIGHTMAGENTA_EX}Coulnt find your page{Style.RESET_ALL}: {e}')
     except Exception:
-        print(f'[ ERROR ] {_return_error_text()}')
+        print(f'{Fore.LIGHTMAGENTA_EX}[ ERROR ]{Style.RESET_ALL} {_return_error_text()}')
 
     if open(log_file, encoding='utf-8').read().strip() == '':
         os.remove(log_file)
+
+except OutputFolderExists:
+    print(f'folder {output_folder} exists. delete or empty it before using the bot')
 except Exception as e:
     try:
         print(f'[ ERROR ] {_return_error_text()}')
