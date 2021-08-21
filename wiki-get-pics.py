@@ -90,7 +90,7 @@ try:
         
         else:
             print(Fore.LIGHTYELLOW_EX + f'downloading {len(images)} started... (check `output` folder)' + Style.RESET_ALL)
-            for image_idx, url in enumerate(images[1:]):
+            for image_idx, url in enumerate(images):
                 name = escape_folder(url.rsplit('/', 1)[-1])
                 path = f'output/{name}'
                 
@@ -126,12 +126,7 @@ try:
                             f.write(data)
                     progress_bar.close()
                     if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
-                        try:
-                            print(f'{Fore.LIGHTMAGENTA_EX}couldnt download{Style.RESET_ALL} {url} | reason: {e}')
-                            with open(log_file, 'a', encoding='utf-8') as f:
-                                f.write(f'couldnt process {url} | reason: {e}')
-                        except:
-                            pass
+                        raise Exception('Something went wrong!')
                     print(Fore.LIGHTGREEN_EX + 'done' + Style.RESET_ALL)
                 
                 except Exception as e:
