@@ -3,7 +3,6 @@ try:
     import os, sys, time, requests, urllib.parse, tkinter, colorama
     from colorama import Fore, Style
     from tqdm import tqdm
-    from urllib.parse import parse_qs
     from pathlib import Path
     from typing import Dict, Tuple, Any
 
@@ -75,6 +74,7 @@ try:
         page_title = urllib.parse.urlparse(page_url).path.rsplit('/', 1)[-1].strip()
         if page_title == '':
             raise CouldntGetPageTitle
+        page_title = urllib.parse.unquote(page_title)
         
         print('getting page... ', end='', flush=True)
         try:
